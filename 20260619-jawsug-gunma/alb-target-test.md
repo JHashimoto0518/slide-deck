@@ -2,13 +2,13 @@
 marp: true
 title: ALBの疎通確認をWebサーバーなしでやる
 theme: default
-header: JAWS-UG東京 ランチタイムLT会 #36
+header: JAWS-UG 群馬 #35
 paginate: true
 ---
 
 # ALBの疎通確認をWebサーバーなしでやる
 
-JAWS-UG東京 ランチタイムLT会 #36
+JAWS-UG 群馬 #35
 
 ---
 
@@ -17,7 +17,6 @@ JAWS-UG東京 ランチタイムLT会 #36
 - 橋本淳一
 - フリーランスのクラウドエンジニア
 - 最近都内から栃木に引っ越しました
-- AWS歴8年くらい
 - 現在の仕事はECサイトのインフラ運用
 - ポートフォリオ: https://lapras.com/public/jhashimoto
 
@@ -135,7 +134,6 @@ curl https://my-domain.com/
 # Appendix: 
 
 CDKのコードとCloudFormationテンプレート。
-
 
 ---
 
