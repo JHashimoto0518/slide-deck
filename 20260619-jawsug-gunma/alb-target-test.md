@@ -24,19 +24,10 @@ JAWS-UG 群馬 #35
 
 # 前提
 
-- ALB -> EC2
 - インフラ担当とアプリ担当が別れている
     - インフラ担当: ALBとEC2の構築
     - アプリ担当: EC2のOSより上のレイヤーを担当
 - インフラ担当としてALB -> EC2の疎通確認をして引き渡したい
-
----
-
-# 通信経路
-
-```
-ALB (HTTP:443) -> ターゲットグループ (HTTP:8443) -> ターゲット (HTTP:8443)
-```
 
 ---
 
@@ -46,27 +37,69 @@ Webサーバーを構成していないターゲットに対してALBのエン�
 
 ---
 
+# 構成
+
+```plain
+ALB (HTTP:443) -> ターゲットグループ (HTTP:8443) -> EC2インスタンス (HTTP:8443)
+```
+
+- [ ] ヘルスチェック設定のスクリーンショットを乗せる
+
+---
+
 # 問題: Webサーバーのミドルウェアがないと疎通確認できない
 
 - ミドルウェアはインフラの責任範囲外なので、インストールは避けたい
 
 ---
 
-# 解決策: ncコマンド
+# 案１: ncコマンド (1/2)
 
-- [ ] ncの仕様を調べる
-    - リクエストパスに対応できるか？
-    - ヘルスチェックに対応できるか？
+ncコマンドでリクエストを受け取る確認ができる。
+
+```sh
+# サーバーで待ち受けておく
+nc -lk 8443
+```
+
+```sh
+# クライアントからリクエスト
+echo "OK" | nc -q 0 {サーバーIP} 8443
+```
+
+- `-l`: Listen モード
+- `-k`: Keep inbound sockets open for multiple connects. 切断後も同じポートで次の接続を待ち続ける
+- `-q 0`: quit after EOF on stdin and delay of secs. STDIN で EOF 後すぐに閉じる
 
 ---
 
-# 解決策: PythonでWebサーバーを立てる
+# 案１: ncコマンド (2/2)
 
-Python の組み込み HTTP サーバーを使用して、ターゲットで HTTP リクエストを受け付けるようにする。リクエストパスに関わらず常に 200 OK を返すので、ヘルスチェックパスを気にせずに疎通確認できる。
+ただし、ターゲットのヘルスチェックを通すには、ncコマンドでステータス200を返す必要がある。
+
+```sh
+while true; do
+  echo -e "HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nOK\n" | nc -l 8443
+done
+# 以下のレスポンスを返す
+# HTTP/1.1 200 OK
+# Content-Length: 3
+# 
+# OK
+#
+```
+
+---
+
+# 案２: PythonでWebサーバーを立てる (1/n)
+
+Python の組み込み HTTP サーバーを使用して、ターゲットで HTTP リクエストを受け付けるようにする。
 
 まず、ターゲットで HTTP サーバーを起動して、ローカルでリクエストしてみる。
 
 ---
+
+# 案２: PythonでWebサーバーを立てる (2/n)
 
 ```python
 PORT=8443 python3 -c "
@@ -82,14 +115,34 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+# TODO: コメント
 socketserver.TCPServer.allow_reuse_address = True
 with socketserver.TCPServer(('', PORT), Handler) as httpd:
     print(f'Listening on port {PORT}')
     try:
         httpd.serve_forever()
+    # TODO: コメント
     except KeyboardInterrupt:
         pass
 "
+```
+
+---
+
+# 案２: PythonでWebサーバーを立てる (3/n)
+
+KEY=VALUE command の形式
+
+- 今回のような KEY=VALUE command の形式はそのコマンドにのみ適用されるスコープなので、シェルの環境変数は汚染されない。
+
+実験。
+
+```sh
+$ PORT=8443 env | grep PORT
+PORT=8443
+$ echo ${PORT}
+
+$
 ```
 
 ---
@@ -129,15 +182,8 @@ curl https://my-domain.com/
 # まとめ
 
 
----
-
-# Appendix: 
-
-CDKのコードとCloudFormationテンプレート。
 
 ---
 
 # ありがとうございました
-
-
 
