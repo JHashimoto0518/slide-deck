@@ -8,7 +8,7 @@ paginate: true
 
 # ALBの疎通確認をWebサーバーなしでやる
 
-JAWS-UG 群馬 #35
+JAWS-UG 群馬 #35 10分LT
 
 ---
 
@@ -44,6 +44,7 @@ ALB (HTTP:443) -> ターゲットグループ (HTTP:8443) -> EC2インスタン�
 ```
 
 - [ ] ヘルスチェック設定のスクリーンショットを乗せる
+- [ ] ポートを変更する
 
 ---
 
@@ -91,7 +92,7 @@ done
 
 ---
 
-# 案２: PythonでWebサーバーを立てる (1/n)
+# 案２: PythonでWebサーバーを立てる (1/3)
 
 Python の組み込み HTTP サーバーを使用して、ターゲットで HTTP リクエストを受け付けるようにする。
 
@@ -99,7 +100,14 @@ Python の組み込み HTTP サーバーを使用して、ターゲットで HTT
 
 ---
 
-# 案２: PythonでWebサーバーを立てる (2/n)
+<style>
+/* フォントサイズを小さくしてコードブロックのはみ出しを防ぐ */
+pre {
+  font-size: 0.6em; 
+}
+</style>
+
+# 案２: PythonでWebサーバーを立てる (2/3)
 
 ```python
 PORT=8443 python3 -c "
@@ -115,13 +123,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
-# TODO: コメント
+# SO_REUSEADDRに対応
+# https://www.geekpage.jp/programming/winsock/so_reuseaddr.php
 socketserver.TCPServer.allow_reuse_address = True
 with socketserver.TCPServer(('', PORT), Handler) as httpd:
     print(f'Listening on port {PORT}')
     try:
         httpd.serve_forever()
-    # TODO: コメント
+    # Ctrl + C による KeyboardInterruptを抑制
     except KeyboardInterrupt:
         pass
 "
@@ -129,7 +138,7 @@ with socketserver.TCPServer(('', PORT), Handler) as httpd:
 
 ---
 
-# 案２: PythonでWebサーバーを立てる (3/n)
+# 案２: PythonでWebサーバーを立てる (3/3)
 
 KEY=VALUE command の形式
 
