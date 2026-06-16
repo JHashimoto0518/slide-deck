@@ -1,12 +1,12 @@
 # slide-deck
 
-登壇スライドを管理するリポジトリです。Marp ([https://marp.app/](https://marp.app/)) を使って Markdown でスライドを作成しています。
+登壇スライドを管理するリポジトリです。[Marp](https://marp.app/) を使って Markdown でスライドを作成しています。
 
 This repository is for managing presentation slides. The slides are created in Markdown using [Marp](https://marp.app/).
 
 My slides: https://speakerdeck.com/jhashimoto
 
-## 登壇履歴
+## 登壇実績
 
 | 日付 | イベント | スライド |
 | --- | --- | --- |
