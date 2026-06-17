@@ -4,6 +4,11 @@ title: ALBの疎通確認をWebサーバーなしでやる
 theme: default
 header: JAWS-UG 群馬 #35
 paginate: true
+style: |
+  /* 総ページ数を出す */
+  section::after {
+    content: attr(data-marpit-pagination) " / " attr(data-marpit-pagination-total);
+  }
 ---
 
 # ALBの疎通確認をWebサーバーなしでやる
@@ -101,9 +106,9 @@ Python の組み込み HTTP サーバーを使用して、ターゲットで HTT
 ---
 
 <style>
-/* フォントサイズを小さくしてコードブロックのはみ出しを防ぐ */
+/* コードブロックのはみ出しを防ぐ */
 pre {
-  font-size: 0.6em; 
+  font-size: 0.56em; 
 }
 </style>
 
@@ -135,6 +140,10 @@ with socketserver.TCPServer(('', PORT), Handler) as httpd:
         pass
 "
 ```
+
+# 案２: PythonでWebサーバーを立てる (3/4)
+
+- [ ] ターミナルのスクリーンショットを載せる
 
 ---
 
