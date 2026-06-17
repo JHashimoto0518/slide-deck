@@ -45,11 +45,10 @@ Webサーバーを構成していないターゲットに対してALBのエン�
 # 構成
 
 ```plain
-ALB (HTTP:443) -> ターゲットグループ (HTTP:8443) -> EC2インスタンス (HTTP:8443)
+ALB (HTTP:443) -> ターゲットグループ (HTTP:8080) -> EC2インスタンス (HTTP:8080)
 ```
 
 - [ ] ヘルスチェック設定のスクリーンショットを乗せる
-- [ ] ポートを変更する
 
 ---
 
@@ -65,12 +64,12 @@ ncコマンドでリクエストを受け取る確認ができる。
 
 ```sh
 # サーバーで待ち受けておく
-nc -lk 8443
+nc -lk 8080
 ```
 
 ```sh
 # クライアントからリクエスト
-echo "OK" | nc -q 0 {サーバーIP} 8443
+echo "OK" | nc -q 0 {サーバーIP} 8080
 ```
 
 - `-l`: Listen モード
@@ -85,7 +84,7 @@ echo "OK" | nc -q 0 {サーバーIP} 8443
 
 ```sh
 while true; do
-  echo -e "HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nOK\n" | nc -l 8443
+  echo -e "HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nOK\n" | nc -l 8080
 done
 # 以下のレスポンスを返す
 # HTTP/1.1 200 OK
@@ -97,7 +96,7 @@ done
 
 ---
 
-# 案２: PythonでWebサーバーを立てる (1/3)
+# 案２: PythonでWebサーバーを立てる (1/2)
 
 Python の組み込み HTTP サーバーを使用して、ターゲットで HTTP リクエストを受け付けるようにする。
 
@@ -112,10 +111,10 @@ pre {
 }
 </style>
 
-# 案２: PythonでWebサーバーを立てる (2/3)
+# 案２: PythonでWebサーバーを立てる (2/2)
 
 ```python
-PORT=8443 python3 -c "
+PORT=8080 python3 -c "
 import http.server, socketserver, os
 
 PORT = int(os.environ['PORT'])
@@ -128,7 +127,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
-# SO_REUSEADDRに対応
+# TCPサーバの終了直後にもう一度起動したときの「Address already in use」エラーを避ける
 # https://www.geekpage.jp/programming/winsock/so_reuseaddr.php
 socketserver.TCPServer.allow_reuse_address = True
 with socketserver.TCPServer(('', PORT), Handler) as httpd:
@@ -141,25 +140,24 @@ with socketserver.TCPServer(('', PORT), Handler) as httpd:
 "
 ```
 
-# 案２: PythonでWebサーバーを立てる (3/4)
-
-- [ ] ターミナルのスクリーンショットを載せる
-
 ---
 
-# 案２: PythonでWebサーバーを立てる (3/3)
+# 補足: PORT変数のスコープ
 
-KEY=VALUE command の形式
+コマンドの前にパラメータ代入を置くと、PORT はそのコマンドの実行中だけ環境変数として参照できる。
 
-- 今回のような KEY=VALUE command の形式はそのコマンドにのみ適用されるスコープなので、シェルの環境変数は汚染されない。
+https://astro.uni-bonn.de/~sysstw/CompMan/gnu/bashref.html#TOC49
+
+> 任意の simple command または関数の環境は、パラメータ代入をその前に置くことで一時的に拡張できます。...これらの代入文は、そのコマンドが見る環境にのみ影響します。
 
 実験。
 
 ```sh
-$ PORT=8443 env | grep PORT
-PORT=8443
+$ PORT=8080 env | grep PORT
+# PORTを環境変数として参照できる
+PORT=8080
 $ echo ${PORT}
-
+# コマンド実行後のシェル自身にはPORTが残っていない（何も出力されない）
 $
 ```
 
@@ -168,7 +166,7 @@ $
 # ローカルホストでリクエストしてみる
 
 ```sh
-curl http://localhost:8443/my-health-check-path
+curl http://localhost:8080/my-health-check-path
 # OK
 ```
 
@@ -178,18 +176,11 @@ curl http://localhost:8443/my-health-check-path
 
 Healthy になったら、ALB のエンドポイントにリクエストしてみる。
 
+- [ ] 証明書の検証と-kの説明を加える
+
 ```sh
 # 疎通確認が目的なので、証明書の検証はスキップする。
 curl -k https://alb-endpoint/
-# OK
-```
-
----
-
-# ドメインにリクエストしてみる
-
-```sh
-curl https://my-domain.com/
 # OK
 ```
 
@@ -199,7 +190,7 @@ curl https://my-domain.com/
 
 # まとめ
 
-
+- [ ] まとめを記載する
 
 ---
 
