@@ -63,16 +63,11 @@ JAWS-UG東京 ランチタイムLT会 #36
 
 # Steampipe とは
 
+https://steampipe.io/
+
 - SQLでクラウドリソースの情報を抽出できるオープンソースツール
 - プラグイン方式で各クラウドプロバイダーに対応
 - 今回はAWSプラグインを使用
-
-```bash
-curl -s -L https://github.com/turbot/steampipe/releases/latest/download/steampipe_linux_amd64.tar.gz | tar -xzvf 
-
-# AWSプラグインのインストール
-./steampipe plugin install aws
-```
 
 ---
 
@@ -85,6 +80,19 @@ curl -s -L https://github.com/turbot/steampipe/releases/latest/download/steampip
 
 ---
 
+# Steampipeのインストール
+
+```bash
+curl -s -L https://github.com/turbot/steampipe/releases/latest/download/steampipe_linux_amd64.tar.gz | tar -xzvf 
+
+# AWSプラグインのインストール
+./steampipe plugin install aws
+```
+
+参考: https://steampipe.io/docs/integrations/aws_cloudshell
+
+---
+
 # 構成情報をCSVで抽出する (1/2)
 
 <style>
@@ -94,7 +102,7 @@ pre {
 }
 </style>
 
-SQLを記述する。
+[リファレンス](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ec2_instance)を元にSQLを記述する。
 
 ```sql
 cat << EOF > ./ec2-ins.sql
