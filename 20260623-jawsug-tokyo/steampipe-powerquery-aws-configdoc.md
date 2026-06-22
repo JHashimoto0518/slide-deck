@@ -39,9 +39,11 @@ JAWS-UG東京 ランチタイムLT会 #36
 
 # 解決策: SteampipeとPower Queryで自動化する
 
-- SteampipeでAWSリソースの構成情報をSQLで取得してCSVに出力
-- Excel Power QueryでCSVを読み込んで構成定義書を生成
-- CSVを再出力して「更新」するだけで最新の構成を定義書に同期
+全体の流れは3ステップ。
+
+- Step 1. SteampipeでAWSリソースをSQLで取得してCSVに出力
+- Step 2. Excel Power QueryでCSVを読み込んで構成定義書を生成
+- Step 3. リソース構成と定義書の同期はCSVを再出力してExcelで更新
 
 ---
 
@@ -54,24 +56,25 @@ JAWS-UG東京 ランチタイムLT会 #36
 - システムのライフサイクルに依存しない
   - 定義書が存在しない・陳腐化した環境でも即座に実態を把握できる
 - クラウドサービスに依存しない
-  - SteampipeプラグインでAWS / Azure / GCPなどに対応
+  - [Steampipeプラグイン](https://hub.steampipe.io/)でAWS / Azure / GCPなどに対応
 
 ---
 
-# Steampipe とは
+# Step 1: 構成情報をCSVで抽出する (1/4)
 
-https://steampipe.io/
+[Steampipe](https://steampipe.io/) とは
 
 - SQLでクラウドリソースの情報を抽出できるオープンソースツール
 - プラグイン方式で各クラウドプロバイダーに対応
 - 認証はAWS CLIと同じ仕組みで動作する（環境変数・プロファイルなど）
-  - https://hub.steampipe.io/plugins/turbot/aws
 
-今回は開発コンテナを使用し、`aws sso login` で認証情報を取得する
+AWSプラグイン: https://hub.steampipe.io/plugins/turbot/aws)
 
 ---
 
-# Steampipeのインストール
+# Step 1: 構成情報をCSVで抽出する (2/4)
+
+Steampipeのインストール
 
 https://steampipe.io/downloads?install=linux
 
@@ -84,9 +87,9 @@ steampipe plugin install aws
 
 ---
 
-# 構成情報をCSVで抽出する (1/2)
+# Step 1: 構成情報をCSVで抽出する (3/4)
 
-[テーブルのリファレンス](https://hub.steampipe.io/plugins/turbot/aws/tables) を参照しながらSQLを記述する。
+SQLを記述する。
 
 <style>
 /* コードブロックのはみ出しを防ぐ */
@@ -118,9 +121,11 @@ WHERE NOT instance_state = 'terminated'
 ORDER BY "名前";
 ```
 
+[aws_ec2_instance table リファレンス](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ec2_instance)
+
 ---
 
-# 構成情報をCSVで抽出する (2/2)
+# Step 1: 構成情報をCSVで抽出する (4/4)
 
 クエリを実行してCSVに出力する。
 
@@ -138,7 +143,9 @@ ec2-web,i-0f586042c6e12ace3,t2.micro,ami-0d71b1617df761282,ip-172-16-2-215.ap-no
 
 ---
 
-# Power Query とは
+# Step 2: CSVをExcelシートに読み込む (1/2)
+
+Power Query とは
 
 - Excelに組み込まれたデータ取得・変換ツール
 - さまざまなデータソースから情報を取り込み、整形できる
@@ -146,9 +153,7 @@ ec2-web,i-0f586042c6e12ace3,t2.micro,ami-0d71b1617df761282,ip-172-16-2-215.ap-no
 
 ---
 
-# CSVをExcelシートに読み込む
-
-初回のみ以下の手順でセットアップする。
+# Step 2: CSVをExcelシートに読み込む (2/2)
 
 1. Excelの [データ] タブを開く
 2. [データの取得] → [テキストまたはCSVから] でCSVを選択
@@ -160,34 +165,33 @@ CSVの内容をもとにExcelテーブル（構成定義書）が完成する。
 
 ---
 
-# 構成変更を定義書に反映する
+# Step 3: 構成変更を定義書に反映する
 
 システムに変更があったら
 
-1. ローカルの古いCSVファイルを上書き
+1. もう一度クエリを実行してCSVに出力する
 2. Excelのテーブルを右クリック → [更新]
 
 定義書が最新の構成情報に自動的に同期される。
-一度セットアップすれば、以降はコマンド1本とExcelの操作だけで済む。
-
----
-
-# さまざまな定義書を生成できる
-
-SQLのJOINを変えるだけで、関心事に応じた定義書を複数作成できる。
-
-| 定義書の種類 | 使うテーブル（例） |
-|---|---|
-| サーバー通信許可一覧 | `aws_ec2_instance` × `aws_vpc_security_group` ×  `aws_vpc_security_group_rule` |
-| RDSインスタンス一覧 | `aws_rds_db_instance` |
-| S3バケットポリシー一覧 | `aws_s3_bucket` |
-| IAMロール・ポリシー一覧 | `aws_iam_role` × `aws_iam_policy` |
+一度セットアップすれば、以降はクエリ実行とExcelの操作だけで済む。
 
 ---
 
 # デモ
 
-EC2インスタンスとセキュリティグループをJOIN → 「サーバーへの通信許可」の一覧
+EC2インスタンスとセキュリティグループをJOIN → 「インスタンスの通信許可」定義書
+
+---
+
+# 他にもさまざまな定義書を生成できる
+
+SQLのJOINを変えるだけで、関心事に応じた定義書を作成できる。
+
+| 定義書 | 使うテーブル |
+|---|---|
+| インスタンスの通信許可 | `aws_ec2_instance` × `aws_vpc_security_group` ×  `aws_vpc_security_group_rule` |
+| インスタンスとストレージ | `aws_rds_db_instance` × `aws_ebs_volume` |
+| IAMロールの権限 | `aws_iam_role` × `aws_iam_policy` |
 
 ---
 
@@ -209,7 +213,7 @@ EC2インスタンスとセキュリティグループをJOIN → 「サーバ�
 - SteampipeでAWSリソースをSQLで取得してCSVに抽出
 - Excel Power QueryでCSVを読み込んで構成定義書を生成
 - CSVを上書き → Excelで「更新」するだけで常に最新状態を維持
-- 構築手法・ライフサイクル・クラウドサービスに依存しない汎用的な手法
+- 構築手法、システムのライフサイクル、クラウドサービスに依存しない汎用的な手法
 
 手動メンテナンスの負荷を大幅に削減し、信頼性の高い構成定義書を実現できる。
 
