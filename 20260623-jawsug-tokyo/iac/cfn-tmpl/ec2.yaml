@@ -208,10 +208,10 @@ Resources:
         Ref: Vpc8378EB38
     Metadata:
       aws:cdk:path: CdkEc2Stack/Vpc/VPCGW
-  Ec2SgF43886FE:
+  Ec2WebSg16F497FB:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: security group for ec2
+      GroupDescription: security group for ec2 web
       SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           Description: Allow all outbound traffic by default
@@ -222,11 +222,34 @@ Resources:
           FromPort: 80
           IpProtocol: tcp
           ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          Description: allow https traffic from anywhere
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
       VpcId:
         Ref: Vpc8378EB38
     Metadata:
-      aws:cdk:path: CdkEc2Stack/Ec2Sg/Resource
-  Ec2InstanceRole8071A9F0:
+      aws:cdk:path: CdkEc2Stack/Ec2-Web-Sg/Resource
+  Ec2BastionSg1EDD4366:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: security group for ec2 bastion
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp: 203.0.113.0/24
+          Description: allow ssh traffic from example IP address
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: CdkEc2Stack/Ec2-Bastion-Sg/Resource
+  Ec2WebInstanceRoleFACB7F7F:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -238,17 +261,17 @@ Resources:
         Version: "2012-10-17"
       Tags:
         - Key: Name
-          Value: ec2
+          Value: ec2-web
     Metadata:
-      aws:cdk:path: CdkEc2Stack/Ec2/InstanceRole/Resource
-  Ec2InstanceProfile7C946CD9:
+      aws:cdk:path: CdkEc2Stack/Ec2-Web/InstanceRole/Resource
+  Ec2WebInstanceProfileF5AD0867:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - Ref: Ec2InstanceRole8071A9F0
+        - Ref: Ec2WebInstanceRoleFACB7F7F
     Metadata:
-      aws:cdk:path: CdkEc2Stack/Ec2/InstanceProfile
-  Ec2FD86B82F:
+      aws:cdk:path: CdkEc2Stack/Ec2-Web/InstanceProfile
+  Ec2Web15D7C945:
     Type: AWS::EC2::Instance
     Properties:
       AvailabilityZone:
@@ -261,29 +284,83 @@ Resources:
             Encrypted: true
             VolumeSize: 8
       IamInstanceProfile:
-        Ref: Ec2InstanceProfile7C946CD9
+        Ref: Ec2WebInstanceProfileF5AD0867
       ImageId:
         Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter
       InstanceType: t2.micro
       SecurityGroupIds:
         - Fn::GetAtt:
-            - Ec2SgF43886FE
+            - Ec2WebSg16F497FB
             - GroupId
       SubnetId:
         Ref: VpcPrivateSubnet1Subnet536B997A
       Tags:
         - Key: Name
-          Value: ec2
+          Value: ec2-web
       UserData:
         Fn::Base64: "#!/bin/bash"
     DependsOn:
-      - Ec2InstanceRole8071A9F0
+      - Ec2WebInstanceRoleFACB7F7F
     Metadata:
-      aws:cdk:path: CdkEc2Stack/Ec2/Resource
+      aws:cdk:path: CdkEc2Stack/Ec2-Web/Resource
+  Ec2BastionInstanceRoleF23915A7:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      Tags:
+        - Key: Name
+          Value: ec2-bastion
+    Metadata:
+      aws:cdk:path: CdkEc2Stack/Ec2-Bastion/InstanceRole/Resource
+  Ec2BastionInstanceProfile4770EBFD:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: Ec2BastionInstanceRoleF23915A7
+    Metadata:
+      aws:cdk:path: CdkEc2Stack/Ec2-Bastion/InstanceProfile
+  Ec2BastionE5C1BB52:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            Encrypted: true
+            VolumeSize: 8
+      IamInstanceProfile:
+        Ref: Ec2BastionInstanceProfile4770EBFD
+      ImageId:
+        Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - Ec2BastionSg1EDD4366
+            - GroupId
+      SubnetId:
+        Ref: VpcPublicSubnet1Subnet5C2D37C4
+      Tags:
+        - Key: Name
+          Value: ec2-bastion
+      UserData:
+        Fn::Base64: "#!/bin/bash"
+    DependsOn:
+      - Ec2BastionInstanceRoleF23915A7
+    Metadata:
+      aws:cdk:path: CdkEc2Stack/Ec2-Bastion/Resource
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/+1VS2/bMAz+LfNxcDwkA4YtNzcFCgPbEqRFDyuCQpaYlI0ieXq4ywL/91GWUifbZYcC62EnUzQfH8lP1KSYvJ8U4zfsyY642I4k1sXh2jG+zUl1fwA+KQ63Db87ZG3Dv7IdZNPsbZZn2JRCGLAWbNLs2I/y5/Fgfa3AzbRa48Yb5lCrbEpBOArzhdltMlNDwOhxs2+CYuFriTzr8r/2qKyWzIHIulWeES5nkLtLWDMv3TVwb9Dtr4z2TTZdM2mBzGZrdbuY5THXdR+MELKWoWQ1SnL4ptUxGVVfiSQHSBdS8+1z5U0MUjVz9Zl5xR+yqTMeQpvaD7PfzJm1uFEV/UktnKuZgdQjsghVvwoUrwbI60ARKROJEqSl9g5uWC1h0A+60lrNsQ/wbJwvDLbE0hcnW0/pf9/e/zBeCkZPtUo5MESUK6LME9unhZVOpaMt/bAD5fKz/RY39TGPlPqplHLuXa29EscbIMByg8152UJUahPALL2EuK0ZYZCoIGqiL9dKAQ+ux2XvFX73kJrT7w36rtJ1OcWWV8o6pjhQbEzi6ZuSVGmlx8byB8pf7djmZA6DFG8SAflzbOdPEZ3u+mNARsrzJ6H/U4cBXUKLPPgSRNHLJwBbLX06dKvjjCLmLke2Kw5LLUNxNF8yFBf7AKwxqDg2TJac0xDcwAGyCQ4lHwYRowbtafSF0WuU0HX5Eqz2hjoYCgkmC2YIIBGly5UWUDzad+34YzH+RK/6o0UcGUqJOyiW8fsLlBPuFPIHAAA=
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1W3W/TMBD/W8gjyoJaJAR9yzppigSs6qY9MFXIsa/drY4d/JFRqv7vnGNnbeEFoSGKxFPOl/v43eXnu4yL8etxMXrBHu0ZF+sziXWxvXaMr3NSfd4CHxfb25bfbbOu5R9ZA9kke5nlGbalEAasBZs0DftafhsO1tcK3FSrJa68YQ61yiYUhKMwH5hdJzO1Dxg9bjZtUMx8LZFnu/yXPSqrJXMgst0izwiXM8jdBSyZl+4auDfoNpdG+zabLJm0QGbTpbqdTfOY67oPRghZx1CyGiU5fNJqSEbVVyLJAdK51Hz9VHkbg1TtlXrPvOL32cQZD6FN3ZvpD+bMWlypit6kFl6pqYHUI7IIVZ8EipMBchooImUiUYI0197BDasl7PV7XWmt5tgHeDLOZwY7Yumzk62n9N9v738YzwWjp1qlHBgiyiVR5pFt0sBKp9LRlL5vQLn8aL7FST3kkVI/llJeeVdrr8RwAwRYbrA9LluISq0CmLmXEKc1IwwSFURN9OVaKeDBdRj2XuEXD6k5/dyg5+JPxTyR6uIwOOx8XinrmOJAsTGJhxszqdLCirTh95S/atjqgGV7Kc4JAvIzKY8XLZ3u+mPfo8weL7z+TR3odwEd8uBLEEUvHwDstPTpsOs7/e8Xka5RxLzLkTXFdq5l+EJ0BclQnG8CsNag4tgyWXJOTHL7a0o2waHkezb1dPp970VcB3FrDNhmRi9RAsWeg9XeEImGVgSzGTNUIk2DXa60gOLBvupGb4vRO/p1e7CIZ4bSYgPFPD6/AynuJsrXCQAA
     Metadata:
       aws:cdk:path: CdkEc2Stack/CDKMetadata/Default
     Condition: CDKMetadataAvailable
