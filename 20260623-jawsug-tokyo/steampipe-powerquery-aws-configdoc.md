@@ -1,12 +1,17 @@
 ---
 marp: true
-title: SteampipeとExcel Power Queryで実現するAWS構成定義書自動化ガイド
+title: SteampipeとExcel Power QueryでAWS構成定義書の作成を自動化する
 theme: default
 header: JAWS-UG東京 ランチタイムLT会 #36
 paginate: true
+style: |
+  /* 総ページ数を出す */
+  section::after {
+    content: attr(data-marpit-pagination) " / " attr(data-marpit-pagination-total);
+  }
 ---
 
-# SteampipeとExcel Power Queryで実現する<br>AWS構成定義書自動化ガイド
+# SteampipeとExcel Power Queryで<br>AWS構成定義書の作成を自動化する
 
 JAWS-UG東京 ランチタイムLT会 #36
 
@@ -63,9 +68,7 @@ JAWS-UG東京 ランチタイムLT会 #36
 - 今回はAWSプラグインを使用
 
 ```bash
-# ダウンロード
-curl -s -L https://github.com/turbot/steampipe/releases/latest/download/steampipe_linux_amd64.tar.gz \
-  | tar -xzvf -
+curl -s -L https://github.com/turbot/steampipe/releases/latest/download/steampipe_linux_amd64.tar.gz | tar -xzvf 
 
 # AWSプラグインのインストール
 ./steampipe plugin install aws
@@ -73,40 +76,56 @@ curl -s -L https://github.com/turbot/steampipe/releases/latest/download/steampip
 
 ---
 
-# 実行環境: AWS CloudShell
+# Steampipeの実行環境
 
+- Steampipeの実行しCSVを出力する
+- 今回はCloudShellを使用するが、AWS APIにアクセスできるターミナルなら何でもよい
 - マネジメントコンソールから直接アクセスできるブラウザベースのシェル
 - コンソールの認証情報をそのまま引き継ぐため **IAMユーザーさえあれば追加設定不要**
-- 今回はSteampipeの実行環境としてCSV出力に使用
 
 ---
 
 # 構成情報をCSVで抽出する (1/2)
 
-SQLクエリを記述する:
+<style>
+/* コードブロックのはみ出しを防ぐ */
+pre {
+  font-size: 0.54em; 
+}
+</style>
+
+SQLを記述する。
 
 ```sql
--- ec2-ins.sql
+cat << EOF > ./ec2-ins.sql
 SELECT
   tags->>'Name' AS "名前",
   instance_id AS "インスタンスID",
   instance_type AS "インスタンスタイプ",
   image_id AS "イメージID",
+  private_dns_name AS "プライベートDNS",
   private_ip_address AS "プライベートIP",
+  public_dns_name AS "パブリックDNS",
   public_ip_address AS "パブリックIP",
   vpc_id AS "VPC ID",
   subnet_id AS "サブネットID",
-  placement_availability_zone AS "アベイラビリティゾーン"
+  placement_availability_zone AS "アベイラビリティゾーン",
+  root_device_name AS "ルートデバイス名",
+  key_name AS "キーペア",
+  platform_details AS "プラットフォーム",
+  architecture AS "アーキテクチャ"
 FROM aws_ec2_instance
+-- 終了したインスタンスは除外
 WHERE NOT instance_state = 'terminated'
 ORDER BY "名前";
+EOF
 ```
 
 ---
 
 # 構成情報をCSVで抽出する (2/2)
 
-クエリを実行してCSVに出力:
+クエリを実行してCSVに出力する。
 
 ```bash
 ./steampipe query --output csv ./ec2-ins.sql > ./ec2-ins.csv
@@ -160,7 +179,6 @@ CloudShellの [アクション]→[ファイルのダウンロード] でCSVを�
 
 - CIに組み込めない
   - デスクトップでの自動化は可
-
 
 ---
 
