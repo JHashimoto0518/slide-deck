@@ -12,7 +12,7 @@ style: |
 
 # SteampipeとExcel Power Queryで<br>AWS構成定義書の作成を自動化する
 
-JAWS-UG東京 ランチタイムLT会 #36
+JAWS-UG 東京ランチタイム LT 会 #36
 
 ---
 
@@ -21,42 +21,53 @@ JAWS-UG東京 ランチタイムLT会 #36
 - 橋本淳一
 - フリーランスのクラウドエンジニア
 - 最近都内から栃木に引っ越しました
-- 現在の仕事はECサイトのインフラ運用
+- 現在の仕事は EC サイトのインフラ運用
 - ポートフォリオ: https://lapras.com/public/jhashimoto
 
 ---
 
 # 問題: 構成定義書のメンテナンスが辛い
 
-- 手動で作成した構成定義書は継続的なメンテナンスが必要
+- 構成定義書は継続的なメンテナンスが必要
 - 構成変更のたびに手作業で更新しなければならない
-- 更新漏れや情報の不整合が発生しやすい
+- 手作業のため更新漏れや情報の不整合が発生しやすい
 - 気づけば定義書が現実と乖離している
 
-実際のAWS環境と定義書のどちらを信じればいいか、わからなくなる
+実際の AWS 環境と定義書のどちらを信じればいいか、わからなくなる
 
 ---
 
-# 解決策: SteampipeとPower Queryで自動化する
+# 解決策: 定義書の作成を自動化する
 
-全体の流れは3ステップ。
+成果物のイメージ
 
-- Step 1. SteampipeでAWSリソースをSQLで取得してCSVに出力
-- Step 2. Excel Power QueryでCSVを読み込んで構成定義書を生成
-- Step 3. リソース構成と定義書の同期はCSVを再出力してExcelで更新
+![alt text](./images/configdoc.png)
+
+---
+
+# 解決策: 定義書の作成を自動化する
+
+SteampipeとPower Queryを組み合わせる例。
+
+全体の流れは 3 ステップ。
+
+- Step 1. Steampipe で AWS リソースの構成情報を CSV に出力
+- Step 2. Excel Power Query で CSV を読み込んで構成定義書を生成
+- Step 3. リソース構成と定義書の同期は CSV を再出力して Excel で更新
+
+Step 1 と Step 2 は定義書の初回作成、Step 3 は定義書の最新化
 
 ---
 
 # この手法のメリット
 
-- AWS環境の実態を唯一の情報源とみなす
-  - ドキュメントは「読み取り専用のビュー」なので手動メンテ不要
+- 構成定義書は「読み取り専用のビュー」なので手動メンテ不要
 - 構築手法に依存しない
-  - マネコン・CLI・CloudFormation・Terraform、何でも対応
+  - マネコン、CLI、CloudFormation、Terraform、何でも対応
 - システムのライフサイクルに依存しない
-  - 定義書が存在しない・陳腐化した環境でも即座に実態を把握できる
+  - 定義書が存在しない、陳腐化した環境でも即座に定義書を生成可能
 - クラウドサービスに依存しない
-  - [Steampipeプラグイン](https://hub.steampipe.io/)でAWS / Azure / GCPなどに対応
+  - [Steampipeプラグイン](https://hub.steampipe.io/)で AWS / Azure / GCP など多くのサービスに対応
 
 ---
 
@@ -64,17 +75,17 @@ JAWS-UG東京 ランチタイムLT会 #36
 
 [Steampipe](https://steampipe.io/) とは
 
-- SQLでクラウドリソースの情報を抽出できるオープンソースツール
+- SQL でクラウドリソースの情報を抽出できるオープンソースツール
 - プラグイン方式で各クラウドプロバイダーに対応
-- 認証はAWS CLIと同じ仕組みで動作する（環境変数・プロファイルなど）
+- 認証は AWS CLI と同じ仕組みで動作する（環境変数・プロファイルなど）
 
-AWSプラグイン: https://hub.steampipe.io/plugins/turbot/aws)
+AWS プラグイン: https://hub.steampipe.io/plugins/turbot/aws
 
 ---
 
 # Step 1: 構成情報をCSVで抽出する (2/4)
 
-Steampipeのインストール
+Steampipe のインストール
 
 https://steampipe.io/downloads?install=linux
 
@@ -89,7 +100,7 @@ steampipe plugin install aws
 
 # Step 1: 構成情報をCSVで抽出する (3/4)
 
-SQLを記述する。
+SQL を記述する。
 
 <style>
 /* コードブロックのはみ出しを防ぐ */
@@ -127,7 +138,7 @@ ORDER BY "名前";
 
 # Step 1: 構成情報をCSVで抽出する (4/4)
 
-クエリを実行してCSVに出力する。
+クエリを実行して CSV に出力する。
 
 ```bash
 steampipe query --output csv ec2.sql > ec2.csv
@@ -147,21 +158,20 @@ ec2-web,i-0f586042c6e12ace3,t2.micro,ami-0d71b1617df761282,ip-172-16-2-215.ap-no
 
 Power Query とは
 
-- Excelに組み込まれたデータ取得・変換ツール
+- Excel に組み込まれたデータ取得・変換ツール
 - さまざまなデータソースから情報を取り込み、整形できる
-- CSVファイルのデータをExcelシートに読み込むために利用する
 
 ---
 
 # Step 2: CSVをExcelシートに読み込む (2/2)
 
-1. Excelの [データ] タブを開く
-2. [データの取得] → [テキストまたはCSVから] でCSVを選択
-3. [データの変換] をクリック
-4. Power Queryエディターで [1行目をヘッダーとして使用] をクリック
-5. [閉じて読み込む] でシートにインポート
+1. Excel の[データ]タブを開く
+2. [データの取得]→[テキストまたは CSV から]で CSV を選択
+3. [データの変換]をクリック
+4. Power Query エディターで[1 行目をヘッダーとして使用]をクリック
+5. [閉じて読み込む]でシートにインポート
 
-CSVの内容をもとにExcelテーブル（構成定義書）が完成する。
+CSV の内容をもとに Excel テーブル（構成定義書）が完成する。
 
 ---
 
@@ -169,50 +179,60 @@ CSVの内容をもとにExcelテーブル（構成定義書）が完成する。
 
 システムに変更があったら
 
-1. もう一度クエリを実行してCSVに出力する
-2. Excelのテーブルを右クリック → [更新]
+1. Steampipe でもう一度クエリを実行して CSV に出力する
+2. Excel のテーブルを右クリック →[更新]
 
 定義書が最新の構成情報に自動的に同期される。
-一度セットアップすれば、以降はクエリ実行とExcelの操作だけで済む。
+一度定義書を作成すれば、以降はクエリ実行と Excel の操作だけで済む。
 
 ---
 
 # デモ
 
-EC2インスタンスとセキュリティグループをJOIN → 「インスタンスの通信許可」定義書
+EC2 インスタンス/セキュリティグループテーブル →「インスタンスの通信許可」定義書
 
 ---
 
 # 他にもさまざまな定義書を生成できる
 
-SQLのJOINを変えるだけで、関心事に応じた定義書を作成できる。
+SQL の JOIN を変えるだけで、関心事に応じた定義書を作成できる。
 
 | 定義書 | 使うテーブル |
 |---|---|
-| インスタンスの通信許可 | `aws_ec2_instance` × `aws_vpc_security_group` ×  `aws_vpc_security_group_rule` |
-| インスタンスとストレージ | `aws_rds_db_instance` × `aws_ebs_volume` |
+| インスタンスの通信許可 | `aws_ec2_instance` × `aws_vpc_security_group_rule` |
+| インスタンスとストレージ | `aws_ec2_instance` × `aws_ebs_volume` |
 | IAMロールの権限 | `aws_iam_role` × `aws_iam_policy` |
 
 ---
 
-# デメリット
+# デメリット (1/2)
 
-- テーブルのリファレンスを見ながらSQLを書くのが面倒
+- 柔軟なフォーマットでは出力できない
+  - Excel のテーブル形式で出力されるため、自由なレイアウトの定義書は作れない
+  - 帳票形式の定義書を作る場合は、別の方法を模索した方が良い
+- テーブルのリファレンスを見ながら SQL を書くのが面倒
   - クエリ例は公式ドキュメントに多数掲載されているので参考にすると良い
     - https://hub.steampipe.io/plugins/turbot/aws/queries
-  - Steampipe公式のMCPサーバーがあり、AIにSQL生成を任せることもできる
+  - Steampipe 公式の MCP サーバーがあり、自然言語でクエリできる（未検証）
     - https://steampipe.io/blog/steampipe-mcp
-- Power Queryはサーバー上では利用できないため、CIには組み込みにくい
-  - PowerShellによるデスクトップでの自動化は可能
+
+---
+
+# デメリット (2/2)
+
+- CIパイプラインへの導入は限定的
+  - Step 1 は CI に組み込むことは可能
+  - Power Query はサーバー上では利用できないため、Step 2 は CI には組み込みにくい
+    - PowerShell によるデスクトップでの自動化は可能
     - https://www.cloudbuilders.jp/articles/4242/
 
 ---
 
 # まとめ
 
-- SteampipeでAWSリソースをSQLで取得してCSVに抽出
-- Excel Power QueryでCSVを読み込んで構成定義書を生成
-- CSVを上書き → Excelで「更新」するだけで常に最新状態を維持
+- Steampipe で AWS リソースの構成情報を CSV として抽出できる
+- Excel Power Query で CSV を読み込んで構成定義書を生成
+- CSV を上書き → Excel で「更新」するだけで常に最新状態を維持
 - 構築手法、システムのライフサイクル、クラウドサービスに依存しない汎用的な手法
 
 手動メンテナンスの負荷を大幅に削減し、信頼性の高い構成定義書を実現できる。
