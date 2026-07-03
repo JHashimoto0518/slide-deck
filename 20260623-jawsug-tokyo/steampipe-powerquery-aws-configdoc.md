@@ -242,3 +242,5 @@ SQL の JOIN を変えるだけで、関心事に応じた定義書を作成で�
 # ありがとうございました
 
 元記事: https://zenn.dev/jhashimoto/articles/steampipe-powerquery-aws-configdoc
+
+デモ環境: https://github.com/JHashimoto0518/steampipe-sandbox
