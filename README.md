@@ -18,4 +18,3 @@ My slides: https://speakerdeck.com/jhashimoto
 
 | 日付 | イベント |
 | --- | --- |
-| 2026-07-18 | [Gunma.web #60 ハーネスエンジニアリング LT会](https://gunmaweb.connpass.com/event/391510/) |
